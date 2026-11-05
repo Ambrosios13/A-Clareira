@@ -1,0 +1,16 @@
+import {LAKE} from './world.js';
+import {SPEED,MAX_WAVES} from './model.js';
+export const vertexShader=`
+uniform float time;uniform int count;uniform vec4 sources[${MAX_WAVES}];uniform vec2 settings[${MAX_WAVES}];
+varying vec3 vNormal;varying vec3 vWorld;varying float vHeight;
+float derivative(float a,float b,float x){float t=clamp((x-a)/(b-a),0.,1.);return 6.*t*(1.-t)/(b-a);}
+// Height and analytic slope in one traversal of the active sources.
+vec3 field(vec2 p){vec3 result=vec3(0.);for(int i=0;i<${MAX_WAVES};i++){if(i>=count)break;vec4 wave=sources[i];float age=time-wave.z;vec2 offset=p-wave.xy;float d=length(offset),behind=age-d/${SPEED.toFixed(1)};if(age>=0.&&behind>0.&&behind<settings[i].y){float life=settings[i].y,k=6.2831853/settings[i].x;float rise=smoothstep(0.,.22,behind),fall=1.-smoothstep(life*.5,life,behind);float window=rise*fall;float dw=derivative(0.,.22,behind)*fall-rise*derivative(life*.5,life,behind);float phase=k*(d-${SPEED.toFixed(1)}*age);float a=wave.w*exp(-d*.035-age/(life*2.));float h=a*sin(phase)*window;float slope=a*((k*cos(phase)-.035*sin(phase))*window-sin(phase)*dw/${SPEED.toFixed(1)});result+=vec3(h,slope*offset/max(d,.0001));}}return result;}
+void main(){vec3 wave=field(vec2(position.x,-position.y));vNormal=normalize(vec3(-wave.y,1.,-wave.z));vHeight=wave.x;vec3 displaced=position;displaced.z=wave.x;vec4 world=modelMatrix*vec4(displaced,1.);vWorld=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}`;
+export const fragmentShader=`
+precision highp float;uniform vec3 mistColor;uniform float mistDensity;uniform samplerCube environment;uniform float time;uniform float daylight;uniform vec3 sunDirection;varying vec3 vNormal;varying vec3 vWorld;varying float vHeight;
+void main(){vec2 p=vWorld.xz;float shore=length(p/vec2(${LAKE.x.toFixed(1)},${LAKE.z.toFixed(1)}));if(shore>1.)discard;vec3 n=normalize(vNormal+vec3(sin(p.y*1.7+time*.25)*.009,0.,cos(p.x*1.4-time*.2)*.009)),view=normalize(cameraPosition-vWorld),light=normalize(daylight>.5?sunDirection:-sunDirection);float fresnel=pow(1.-max(dot(n,view),0.),3.);float reflections=sin(p.x*.35+p.y*.15)*sin(p.y*.6-p.x*.1);vec3 deep=vec3(.025,.29,.42),shallow=vec3(.12,.65,.46);vec3 color=mix(deep,shallow,smoothstep(.72,1.,shore));color+=vec3(.03,.22,.24)*reflections*.35;vec3 reflected=textureCube(environment,reflect(-view,n)).rgb;color=mix(color,reflected,.12+fresnel*.65);float caustic=pow(.5+.5*sin(p.x*2.2+sin(p.y*1.9)+time*.25),12.)*pow(.5+.5*cos(p.y*2.1+sin(p.x*1.5)-time*.17),8.);color+=vec3(.29,.43,.19)*caustic*smoothstep(.68,.97,shore)*.28;float rim=exp(-pow((shore-.996)/.0025,2.));color=mix(color,vec3(.66,.79,.6),rim*.38);float spec=pow(max(dot(reflect(-light,n),view),0.),85.);color+=vec3(.95,.88,.58)*spec*.65;
+float slope=length(n.xz);color+=vec3(.22,.74,.83)*slope*.65;color+=vec3(.5,.64,.46)*max(vHeight,0.)*3.;color-=vec3(.12,.17,.12)*max(-vHeight,0.)*3.;float crest=1.-smoothstep(.001,.0035,abs(vHeight-.014));color+=mix(vec3(1.,.69,.19),vec3(.91,.28,.68),.5+.5*sin(p.x*.19+p.y*.13))*crest*smoothstep(.005,.03,slope)*.42;color*=mix(vec3(.12,.18,.34),vec3(1.),daylight);float fog=1.-exp(-pow(distance(cameraPosition,vWorld)*mistDensity,2.));gl_FragColor=vec4(mix(color,mistColor,fog),1.);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+}`;

@@ -1,0 +1,1 @@
+{"name":"clareira-jardim-de-ondas","version":"3.0.0","private":true,"type":"module","engines":{"node":">=22.8.0"},"repository":{"type":"git","url":"https://github.com/Ambrosios13/A-Clareira.git"},"scripts":{"check":"node scripts/check.mjs","dev":"node server.mjs","test":"node --test --test-isolation=none tests/*.test.mjs"}}
