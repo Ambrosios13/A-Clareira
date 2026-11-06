@@ -11,5 +11,5 @@ vec2 p=d.xz/(elevation+.25)*2.5+vec2(clock*.003,0.);float cloud=noise(p)*.55+noi
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
 }`});
- const sky=new THREE.Mesh(new THREE.SphereGeometry(1800,24,16),material);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);return{sky,update(camera,time,light=initial){sky.position.copy(camera.position);uniforms.clock.value=time;uniforms.daylight.value=light.day;uniforms.twilight.value=light.twilight;uniforms.sunDirection.value.set(...light.sun);}};
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(1800,32,24),material);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);return{sky,update(camera,time,light=initial){sky.position.copy(camera.position);uniforms.clock.value=time;uniforms.daylight.value=light.day;uniforms.twilight.value=light.twilight;uniforms.sunDirection.value.set(...light.sun);}};
 }

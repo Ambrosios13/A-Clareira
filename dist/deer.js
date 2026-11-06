@@ -2,7 +2,7 @@ import {createWildlife} from './wildlife-model.js';
 import {terrainHeight} from './world.js';
 
 export function makeDeer(THREE,scene,trees){
- const simulation=createWildlife(trees),sphere=new THREE.SphereGeometry(1,10,8),limb=new THREE.CylinderGeometry(.065,.045,1,7),antlerGeo=new THREE.CylinderGeometry(.015,.04,1,5);
+ const simulation=createWildlife(trees),sphere=new THREE.SphereGeometry(1,32,24),limb=new THREE.CylinderGeometry(.065,.045,1,24),antlerGeo=new THREE.CylinderGeometry(.015,.04,1,24);
  const materials={coat:new THREE.MeshStandardMaterial({color:0xbf7940,roughness:.95}),cream:new THREE.MeshStandardMaterial({color:0xf5dfb8,roughness:1}),dark:new THREE.MeshStandardMaterial({color:0x342b25,roughness:.8}),antler:new THREE.MeshStandardMaterial({color:0xd2b68b,roughness:1})};
  const occluders=[];
  function oval(parent,material,x,y,z,sx,sy,sz){const mesh=new THREE.Mesh(sphere,materials[material]);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);parent.add(mesh);occluders.push(mesh);return mesh;}

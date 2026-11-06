@@ -1,0 +1,25 @@
+import {CAVE,caveWidth,caveFloor,caveRoof,shellData,mountainData} from './cave-model.js';
+import {seeded} from './model.js';
+import {terrainHeight} from './world.js';
+
+// Separate outer mountain and inward-facing vault leave a genuinely open passage.
+export function makeCave(THREE,root,site){
+ const random=seeded(site.x+940),occluders=[],detail=new THREE.Group();root.add(detail);
+ const color=new THREE.Color(),low=new THREE.Color(0x414d60),high=new THREE.Color(0xa99c95),moss=new THREE.Color(0x617c59);
+ const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.93,side:THREE.DoubleSide});
+ function geometry(data,exterior=false){const geo=new THREE.BufferGeometry(),colors=[];for(let i=0;i<data.positions.length;i+=3){const x=data.positions[i],y=data.positions[i+1],z=data.positions[i+2];const strata=.5+.22*Math.sin(y*3+x*.15+Math.sin(z*.4))+.14*Math.sin(x*2.7+z*1.9)+.08*Math.cos(y*13+z*4);color.copy(low).lerp(high,Math.max(0,Math.min(1,strata)));if(exterior&&y<7)color.lerp(moss,.45);colors.push(color.r,color.g,color.b);if(exterior){const edge=Math.max(0,Math.min(1,(Math.hypot(x,z+6)-32)/11));data.positions[i+1]+=edge*(terrainHeight(site.x+x,site.z+z)-terrainHeight(site.x,site.z));}}geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(data.indices);geo.computeVertexNormals();geo.computeBoundingSphere();return geo;}
+ function surface(parent,data,exterior=false){const mesh=new THREE.Mesh(geometry(data,exterior),material);mesh.receiveShadow=true;mesh.castShadow=exterior;parent.add(mesh);occluders.push(mesh);return mesh;}
+ const mountain=new THREE.LOD();mountain.autoUpdate=false;root.add(mountain);mountain.addLevel(surface(new THREE.Group(),mountainData(),true),0);mountain.addLevel(surface(new THREE.Group(),mountainData(40,64),true),150,.12);mountain.levels[1].object.visible=false;
+ surface(detail,shellData());
+ const floor={positions:[],indices:[]},rows=192,cols=96;for(let r=0;r<=rows;r++){const z=CAVE.backZ+(CAVE.entranceZ-CAVE.backZ)*r/rows;for(let c=0;c<=cols;c++){const x=(c/cols*2-1)*caveWidth(z);floor.positions.push(x,caveFloor(x,z),z);if(r<rows&&c<cols){const i=r*(cols+1)+c;floor.indices.push(i,i+cols+1,i+1,i+1,i+cols+1,i+cols+2);}}}surface(detail,floor);
+ // The rear arch now joins the descending underground network.
+ const stone=new THREE.MeshStandardMaterial({color:0x827c85,roughness:.88}),calcite=new THREE.MeshStandardMaterial({color:0xb3a99b,roughness:.69});
+ const column=new THREE.ConeGeometry(1,1,24,12);const p=column.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),noise=1+.09*Math.sin(y*29+x*7+z*13);p.setXYZ(i,x*noise,y,z*noise);}column.computeVertexNormals();
+ const formations=new THREE.InstancedMesh(column,calcite,112),dummy=new THREE.Object3D();formations.receiveShadow=true;detail.add(formations);occluders.push(formations);
+ for(let i=0;i<112;i++){const z=-18+random()*42,side=i%2?1:-1,x=side*(caveWidth(z)-.2-random()*.08);const roof=6.6+3.3*Math.exp(-(((z+2)/14)**2));const ceiling=caveFloor(x,z)+roof*Math.sqrt(Math.max(0,1-(x/caveWidth(z))**2)),length=Math.min(.7+random()*2.5,(ceiling-caveFloor(x,z))*.8);dummy.position.set(x,i<56?ceiling-length/2:caveFloor(x,z)+length/2,z);dummy.rotation.set(i<56?Math.PI:0,random()*6.28,side*.08);dummy.scale.set(.1+random()*.1,length,.1+random()*.1);dummy.updateMatrix();formations.setMatrixAt(i,dummy.matrix);}
+ const boulder=new THREE.SphereGeometry(1,32,24),bp=boulder.attributes.position;for(let i=0;i<bp.count;i++){const x=bp.getX(i),y=bp.getY(i),z=bp.getZ(i),n=1+.12*Math.sin(x*8+z*7)*Math.cos(y*9)+.045*Math.sin(z*21+x*11);bp.setXYZ(i,x*n,y*n,z*n);}boulder.computeVertexNormals();const rocks=new THREE.InstancedMesh(boulder,stone,46);rocks.castShadow=true;rocks.receiveShadow=true;detail.add(rocks);occluders.push(rocks);
+ for(let i=0;i<46;i++){const mouth=i<18,a=mouth?i/17*Math.PI:random()*Math.PI*2,x=mouth?Math.cos(a)*5.7:Math.cos(a)*(22+random()*18),z=mouth?29+random()*2:-6+Math.sin(a)*(24+random()*17);dummy.position.set(x,mouth?Math.sin(a)*7.8+.3:Math.max(.2,terrainHeight(site.x+x,site.z+z)-root.position.y),z);dummy.rotation.set(random(),random()*6.28,random());dummy.scale.set(mouth?.8+random()*.5:1+random()*2,mouth?.7+random()*.4:1+random()*2,mouth?1.3:1+random()*2);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);}
+ // Low warm light gives the cavern a lived-in center between the cool crystals.
+ const fire=new THREE.Mesh(new THREE.ConeGeometry(.28,.8,24,4),new THREE.MeshStandardMaterial({color:0xffb363,emissive:0xff7c28,emissiveIntensity:2}));fire.position.set(6,caveFloor(6,4)+.55,4);detail.add(fire);const light=new THREE.PointLight(0xffb77c,45,24,1.7);light.position.set(6,2,4);detail.add(light);const fill=new THREE.PointLight(site.color,35,45,1.6);fill.position.set(0,6,0);detail.add(fill);
+ return{occluders,update(camera,time){if(camera){mountain.update(camera);detail.visible=camera.position.distanceTo(root.position)<160;}fire.scale.y=1+Math.sin(time*6)*.12;light.intensity=43+Math.sin(time*5)*3;}};
+}

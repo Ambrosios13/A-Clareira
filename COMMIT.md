@@ -9,7 +9,7 @@ git status
 git diff --cached --stat
 npm test
 npm run check
-git commit -m "Expand Clareira with farms, wildlife and day-night cycle"
+git commit -m "Expand caves with abandoned mines, roaming goblins and a hidden dwarven clan"
 ```
 
 O remoto desejado é `https://github.com/Ambrosios13/A-Clareira.git`. Não foi possível consultar seu conteúdo neste ambiente. Antes de enviar, execute `git fetch origin` e verifique se já existe histórico remoto; se existir, integre o projeto nesse histórico em uma branch apropriada. Não use push forçado para substituir arquivos existentes.
