@@ -1,0 +1,6 @@
+/** View: centraliza o acesso à interface HTML. */
+export function createGameView(root=document){
+ const element=id=>{const node=root.getElementById(id);if(!node)throw new Error(`Elemento de interface não encontrado: ${id}`);return node;};
+ return {element,setExploring(active){root.body.classList.toggle('exploring',active);},isExploring(){return root.body.classList.contains('exploring');},togglePanel(){return root.body.classList.toggle('panel-collapsed');},isDocumentHidden(){return root.hidden;},addDestination(site){const option=root.createElement('option');option.value=site.id;option.textContent=site.name;element('destinations').append(option);},download(blob,name){const url=URL.createObjectURL(blob),anchor=root.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),5000);},bindMoveButtons(onMove){root.querySelectorAll('[data-move]').forEach(button=>{button.addEventListener('pointerdown',event=>{event.preventDefault();button.setPointerCapture(event.pointerId);onMove(button.dataset.move,true);});for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,()=>onMove(button.dataset.move,false));});}};
+}
+
